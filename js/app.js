@@ -1,4 +1,4 @@
-import {search,stream} from './api.js';
+import {search,stream,diag} from './api.js';
 const $=s=>document.querySelector(s),au=$('#au');
 const ld=k=>{try{return JSON.parse(localStorage.getItem(k))}catch{return null}},sv=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch{}};
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -20,7 +20,7 @@ const shown=()=>S.all?S.items:S.items.filter(t=>!bad(t));
 function results(){const q=S.q.trim();
  if(S.st=='idle')return empty('Find a song.','Search by song or artist. Podcasts, remixes and live versions stay out unless you turn the filters off.');
  if(S.st=='load')return '<p class="hint">Searching…</p>';
- if(S.st=='err')return empty('Couldn’t load results.','The music servers did not respond. Check your connection and try again.','<button class="btn solid" data-a="retry">Try again</button>');
+ if(S.st=='err')return empty('Couldn’t load results.','The music servers did not respond. Check your connection and try again.'+(diag.length?`</p><p class="hint">${esc(diag.slice(0,3).join(' / '))}`:'')+'','<button class="btn solid" data-a="retry">Try again</button>');
  if(!S.items.length)return empty(`No songs found for “${esc(q)}”.`,'Check the spelling or try the artist name.');
  const hid=S.items.filter(bad).length,ok=shown();
  return (hid?`<p class="hint">${S.all?'Showing everything.':hid+' hidden by your filters.'} <button class="link" data-a="all">${S.all?'Hide filtered results':'Show them'}</button></p>`:'')+(ok.length?list(ok,'r',S.all):'')}

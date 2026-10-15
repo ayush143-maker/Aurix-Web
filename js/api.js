@@ -1,24 +1,22 @@
-// Piped API with automatic failover between public instances.
+// Piped API: races instances in batches of 5 (first valid answer wins), like the reference _piped.js.
+const DEFAULTS=["https://pipedapi.kavin.rocks","https://pipedapi.leptons.xyz","https://pipedapi.nosebs.ru","https://pipedapi-libre.kavin.rocks","https://piped-api.privacy.com.de","https://pipedapi.adminforge.de","https://api.piped.yt","https://pipedapi.drgns.space","https://pipedapi.owo.si","https://pipedapi.ducks.party","https://piped-api.codespace.cz","https://pipedapi.reallyaweso.me","https://api.piped.private.coffee","https://pipedapi.darkness.services","https://pipedapi.orangenet.cc"];
 const ld=k=>{try{return JSON.parse(localStorage.getItem(k))}catch{return null}};
 const sv=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch{}};
-const FALLBACK=['https://pipedapi.kavin.rocks'];
-let pool;
-async function instances(){
- if(pool)return pool;
- const c=ld('aurix.inst');if(c&&Date.now()-c.t<36e5&&c.l.length)return pool=c.l;
- try{const j=await(await fetch('https://piped-instances.kavin.rocks/',{signal:AbortSignal.timeout(6000)})).json();
-  const l=[...new Set(j.filter(i=>i.api_url).map(i=>i.api_url.replace(/\/$/,'')))];
-  if(l.length){sv('aurix.inst',{t:Date.now(),l});return pool=l}}catch{}
- return pool=FALLBACK}
-async function call(path){
- const l=await instances(),best=ld('aurix.best'),order=best?[best,...l.filter(x=>x!==best)]:l;let err;
- for(const b of order.slice(0,6)){
-  try{const r=await fetch(b+path,{signal:AbortSignal.timeout(9000)});if(!r.ok)throw new Error(r.status);const j=await r.json();if(j.error)throw new Error(j.error);sv('aurix.best',b);return j}catch(e){err=e}}
- throw err||new Error('No instance')}
-export async function search(q){
- const j=await call('/search?q='+encodeURIComponent(q)+'&filter=music_songs');
- return(j.items||[]).filter(i=>i.url&&i.url.includes('v=')).map(i=>({id:new URL(i.url,'https://x.y').searchParams.get('v'),title:i.title,artist:i.uploaderName||'',art:i.thumbnail,d:i.duration>0?i.duration:0}))}
-export async function stream(id){
- const j=await call('/streams/'+id),a=(j.audioStreams||[]).filter(s=>s.url),m=a.filter(s=>(s.mimeType||'').includes('mp4')),
+export const diag=[];
+const valid=(path,d)=>path.startsWith('/search')?Array.isArray(d)||Array.isArray(d&&d.items):!!d&&typeof d=='object'&&(Array.isArray(d.audioStreams)||Array.isArray(d.videoStreams));
+async function probe(base,path,ms,ctl){const t=setTimeout(()=>ctl.abort(),ms);
+ try{const r=await fetch(base+path,{signal:ctl.signal});if(!r.ok)throw new Error('HTTP '+r.status);const d=await r.json();if(!valid(path,d))throw new Error('Bad response');return d}finally{clearTimeout(t)}}
+async function call(path,ms){
+ diag.length=0;const best=ld('aurix.best'),l=best?[best,...DEFAULTS.filter(x=>x!==best)]:DEFAULTS;
+ for(let o=0;o<l.length;o+=5){const b=l.slice(o,o+5),cs=b.map(()=>new AbortController());
+  try{return await Promise.any(b.map(async(u,i)=>{try{const d=await probe(u,path,ms,cs[i]);cs.forEach((c,j)=>j!=i&&c.abort());sv('aurix.best',u);return d}
+   catch(e){diag.push(new URL(u).host+': '+(e.name=='AbortError'?'timeout':e.message));throw e}}))}catch{}}
+ throw new Error('All servers failed')}
+const map=j=>(Array.isArray(j)?j:j.items||[]).filter(i=>i&&typeof i.url=='string'&&i.url.includes('v=')&&(!i.type||i.type=='stream')).map(i=>({id:new URL(i.url,'https://x.y').searchParams.get('v'),title:i.title,artist:i.uploaderName||'',art:i.thumbnail,d:i.duration>0?i.duration:0}));
+export async function search(q){const e=encodeURIComponent(q);let r=[];
+ try{r=map(await call('/search?q='+e+'&filter=music_songs',4000))}catch{}
+ if(!r.length)r=map(await call('/search?q='+e+'&filter=videos',4000)).filter(t=>t.d>=45);
+ return r}
+export async function stream(id){const j=await call('/streams/'+id,7000),a=(j.audioStreams||[]).filter(s=>s&&typeof s.url=='string'&&s.url.startsWith('https:')),m=a.filter(s=>(s.mimeType||'').includes('mp4')),
  p=(m.length?m:a).sort((x,y)=>(y.bitrate||0)-(x.bitrate||0))[0];
  if(!p)throw new Error('No audio stream');return{url:p.url,d:j.duration}}
