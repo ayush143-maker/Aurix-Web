@@ -1,16 +1,16 @@
-import {search,streams,diag} from './api.js';
+import {search,streams,diag,big} from './api.js';
 const $=s=>document.querySelector(s),au=$('#au');
 const ld=k=>{try{return JSON.parse(localStorage.getItem(k))}catch{return null}},sv=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch{}};
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt=s=>{s=Math.max(0,Math.floor(s||0));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')};
-const S={route:'home',q:'',st:'idle',items:[],all:false,pos:0,dur:0,play:false,ready:false,i:-1,queue:[],msg:'',hist:ld('aurix.hist')||[],sec:{},open:innerWidth>=1280,sheet:false,f:{remix:1,live:1,cover:1,podcast:1,slowed:1}};
+const S={route:'home',q:'',st:'idle',items:[],all:false,pos:0,dur:0,play:false,ready:false,i:-1,queue:[],msg:'',hist:ld('aurix.hist')||[],sec:{},m:'au',noPiped:0,lg:0,open:innerWidth>=1280,sheet:false,f:{remix:1,live:1,cover:1,podcast:1,slowed:1}};
 const FL={remix:'Hide remixes',live:'Hide live versions',cover:'Hide covers',podcast:'Hide podcasts',slowed:'Hide slowed and sped up'};
 const RX={remix:/remix|rework|bootleg|\bflip\b/i,live:/[(\[-]\s*live\b|live (at|in|from|on)\b/i,cover:/\bcover\b|karaoke|tribute/i,slowed:/slowed|sped up|speed up|nightcore|8d audio|bass boosted/i};
 const bad=t=>Object.keys(S.f).some(k=>S.f[k]&&(k=='podcast'?t.d>900||/podcast|episode|interview/i.test(t.title):RX[k].test(t.title)));
 const sv2=(d,x)=>`<svg viewBox="0 0 24 24"${x||''}>${d}</svg>`,L=' fill="none" stroke="currentColor" stroke-width="1.75"';
 const ic={p:sv2('<path d="M7 4.5v15L19 12z" fill="currentColor"/>'),z:sv2('<path d="M6 5h4v14H6zM14 5h4v14h-4z" fill="currentColor"/>'),n:sv2('<path d="M6 5v14l10-7zM17 5h2v14h-2z" fill="currentColor"/>'),b:sv2('<path d="M18 5v14L8 12zM5 5h2v14H5z" fill="currentColor"/>'),l:sv2('<path d="M4 6h16M4 12h16M4 18h9"/>',L),x:sv2('<path d="M5 5l14 14M19 5L5 19"/>',L),d:sv2('<path d="m6 9 6 6 6-6"/>',L)};
 const cur=()=>S.queue[S.i];
-const art=(t,alt)=>`<span class="art">${t&&t.art?`<img src="${esc(t.art)}" alt="${alt?esc(t.title):''}" loading="lazy" referrerpolicy="no-referrer">`:''}</span>`;
+const art=(t,alt)=>`<span class="art">${t&&t.art?`<img src="${esc(big(t.art))}" alt="${alt?esc(t.title):''}" loading="lazy" referrerpolicy="no-referrer">`:''}</span>`;
 const row=(t,k,s,tag)=>{const c=cur()&&cur().id===t.id;return `<li><button class="tr" data-a="play" data-s="${s}" data-k="${k}"${c?' aria-current="true"':''}><span class="n">${c?'':k+1}</span>${art(t)}<span><span class="t">${esc(t.title)}</span><span class="m">${esc(t.artist)}</span></span><span class="d">${tag&&bad(t)?'Filtered, ':''}${t.d?fmt(t.d):''}</span></button></li>`};
 const list=(a,s,tag,o=0)=>`<ol class="ls">${a.map((t,k)=>row(t,k+o,s,tag)).join('')}</ol>`;
 const empty=(h,p,x='')=>`<div class="empty"><h2>${h}</h2><p>${p}</p>${x}</div>`;
@@ -24,7 +24,7 @@ const rowH=id=>{const x=S.sec[id];if(!x||x.st=='load')return Array(8).fill('<spa
 const home=()=>{const h=S.hist,f=h[0];return `<h1 class="sr">Home</h1>`+(f?`<section class="hero">${art(f,1)}<div><h2>${esc(f.title)}</h2><p>${esc(f.artist)}</p><button class="btn solid" data-a="play" data-s="h" data-k="0">${S.play&&cur()&&cur().id==f.id?'Pause':'Play'}</button></div></section>`:'')+
  SEC.map(([id,title,q])=>id=='recent'?(h.length?`<section class="sec hs"><h2>${title}</h2><div class="hrow">${h.map((t,k)=>card(t,k,'h')).join('')}</div></section>`:''):`<section class="sec hs" data-sec="${id}" data-q="${esc(secQ(id,q))}"><h2>${title}</h2><div class="hrow">${rowH(id)}</div></section>`).join('')};
 const paint=id=>{const e=document.querySelector('[data-sec="'+id+'"] .hrow');if(e)e.innerHTML=rowH(id)};
-async function loadSec(id,q){const k='aurix.sec.'+q,c=ld(k);if(c&&Date.now()-c.t<216e5){S.sec[id]={st:'ok',items:c.items};return paint(id)}
+async function loadSec(id,q){const k='aurix.sec2.'+q,c=ld(k);if(c&&Date.now()-c.t<216e5){S.sec[id]={st:'ok',items:c.items};return paint(id)}
  S.sec[id]={st:'load'};paint(id);try{const items=await search(q);S.sec[id]={st:'ok',items};if(items.length)sv(k,{t:Date.now(),items:items.slice(0,20)})}catch{S.sec[id]={st:'err'}}paint(id)}
 function watch(){if(typeof IntersectionObserver=='undefined')return;const io=new IntersectionObserver(es=>es.forEach(e=>{if(!e.isIntersecting)return;io.unobserve(e.target);const id=e.target.dataset.sec;if(!S.sec[id]||S.sec[id].st=='err')loadSec(id,e.target.dataset.q)}),{rootMargin:'300px'});document.querySelectorAll('[data-sec][data-q]').forEach(e=>io.observe(e))}
 const heroBtn=()=>{const b=document.querySelector('.hero .btn');if(b&&S.hist[0])b.textContent=S.play&&cur()&&cur().id==S.hist[0].id?'Pause':'Play'};
@@ -61,20 +61,33 @@ function meta(t){if(!('mediaSession' in navigator))return;navigator.mediaSession
 const tryUrl=u=>new Promise(res=>{let d=0;const fin=v=>{if(d)return;d=1;clearTimeout(tm);au.removeEventListener('loadedmetadata',ok);au.removeEventListener('error',er);res(v)},
  ok=()=>fin(true),er=()=>fin('Audio error '+(au.error?au.error.code:'?')),tm=setTimeout(()=>fin('Audio timeout'),9000);
  au.addEventListener('loadedmetadata',ok);au.addEventListener('error',er);au.src=u;au.load()});
-async function load(k){const t=S.queue[k];if(!t)return;S.i=k;S.pos=0;S.dur=t.d;S.play=true;S.ready=false;S.msg='';refresh();
- try{const skip=[];let ok=false,last='';
-  for(let n=0;n<4&&!ok;n++){let s;try{s=await streams(t.id,skip)}catch(e){last=last||e.message;break}
-   if(cur()!==t)return;skip.push(s.base);if(s.d>0)S.dur=s.d;
-   for(const u of s.urls){const r=await tryUrl(u);if(cur()!==t)return;if(r===true){ok=true;break}last=r}}
-  if(!ok)throw new Error(last||'No playable stream');
-  S.ready=true;await au.play();S.hist=[t,...S.hist.filter(x=>x.id!==t.id)].slice(0,12);sv('aurix.hist',S.hist);meta(t)}
- catch(e){if(cur()!==t)return;S.play=false;if(e.name=='NotAllowedError'){S.msg='Tap play to start.';refresh();return}S.ready=false;S.msg='No sound: '+e.message;refresh()}}
-const toggle=()=>{if(!cur())return;if(!S.ready)return load(S.i);au.paused?au.play().catch(()=>{}):au.pause()};
-const step=d=>{if(d<0&&S.pos>3&&S.ready){au.currentTime=0;return}const n=S.i+d;if(n>=0&&n<S.queue.length)load(n);else if(d>0){au.pause();S.pos=0;chrome()}};
-au.addEventListener('timeupdate',()=>{S.pos=au.currentTime;if(isFinite(au.duration))S.dur=au.duration;tick()});
-au.addEventListener('ended',()=>step(1));
-['play','pause'].forEach(e=>au.addEventListener(e,()=>{if(!S.ready)return;S.play=!au.paused;chrome();heroBtn()}));
-if('mediaSession' in navigator){const m=(a,f)=>{try{navigator.mediaSession.setActionHandler(a,f)}catch{}};m('play',()=>au.play());m('pause',()=>au.pause());m('previoustrack',()=>step(-1));m('nexttrack',()=>step(1));m('seekto',e=>{au.currentTime=e.seekTime})}
+// Public Piped instances are mostly blocked by YouTube for /streams, so we fall back to the YouTube player.
+let yt=null,ytP=null,poll=0,lt=0;
+const P={play:()=>S.m=='yt'?yt.playVideo():au.play(),pause:()=>S.m=='yt'?yt.pauseVideo():au.pause(),paused:()=>S.m=='yt'?yt.getPlayerState()!=1:au.paused,seek:x=>S.m=='yt'?yt.seekTo(x,true):(au.currentTime=x),time:()=>S.m=='yt'?yt.getCurrentTime():au.currentTime};
+const logPlay=t=>{if(S.lg==t.id)return;S.lg=t.id;S.hist=[t,...S.hist.filter(x=>x.id!==t.id)].slice(0,12);sv('aurix.hist',S.hist);meta(t)};
+function ytLoad(){return ytP||(ytP=new Promise((ok,no)=>{const d=document.createElement('div');d.style.cssText='position:fixed;right:0;bottom:0;width:200px;height:200px;opacity:.01;pointer-events:none;z-index:-1';d.innerHTML='<div id="ytp"></div>';document.body.append(d);
+ window.onYouTubeIframeAPIReady=()=>{yt=new YT.Player('ytp',{width:200,height:200,playerVars:{playsinline:1,controls:0,disablekb:1,rel:0,origin:location.origin},events:{onReady:()=>ok(),onStateChange:ytState,onError:ytErr}})};
+ const sc=document.createElement('script');sc.src='https://www.youtube.com/iframe_api';sc.onerror=()=>{ytP=null;no(new Error('YouTube player blocked'))};document.head.append(sc);setTimeout(()=>no(new Error('YouTube player timeout')),10000)}))}
+function ytState(e){if(S.m!='yt')return;const x=e.data;clearInterval(poll);
+ if(x==1){S.play=true;S.msg='';logPlay(cur());poll=setInterval(()=>{S.pos=yt.getCurrentTime();const d=yt.getDuration();if(d>0)S.dur=d;tick()},500);chrome();heroBtn()}
+ else if(x==2){S.play=false;chrome();heroBtn()}else if(x==0)step(1)}
+function ytErr(){const t=cur();S.play=false;S.msg='Not playable here. Skipping.';chrome();setTimeout(()=>{if(cur()===t)step(1)},1200)}
+async function viaPiped(t,tok){const skip=[];
+ for(let n=0;n<2;n++){let x;try{x=await streams(t.id,skip)}catch{return false}
+  if(tok!=lt)return false;skip.push(x.base);if(x.d>0)S.dur=x.d;
+  for(const u of x.urls){if(tok!=lt)return false;const r=await tryUrl(u);if(tok!=lt)return false;
+   if(r===true){S.m='au';S.ready=true;try{await au.play()}catch(e){if(e.name!='NotAllowedError')return false;S.msg='Tap play to start.';S.play=false}logPlay(t);return true}}}
+ return false}
+async function load(k){const t=S.queue[k];if(!t)return;let tok=++lt;S.i=k;S.pos=0;S.dur=t.d;S.play=true;S.ready=false;S.msg='';S.lg=0;refresh();
+ try{if(!S.noPiped){const ok=await Promise.race([viaPiped(t,tok),new Promise(r=>setTimeout(()=>r(false),5000))]);if(tok!=lt)return;if(ok){refresh();return}S.noPiped=1}
+  tok=++lt;await ytLoad();if(tok!=lt)return;au.pause();S.m='yt';S.ready=true;yt.loadVideoById(t.id);meta(t)}
+ catch(e){if(cur()!==t)return;S.play=false;S.ready=false;S.msg='No sound: '+e.message;refresh()}}
+const toggle=()=>{if(!cur())return;if(!S.ready)return load(S.i);P.paused()?Promise.resolve(P.play()).catch(()=>{}):P.pause()};
+const step=d=>{if(d<0&&S.pos>3&&S.ready){P.seek(0);return}const n=S.i+d;if(n>=0&&n<S.queue.length)load(n);else if(d>0){if(S.ready)P.pause();S.pos=0;chrome()}};
+au.addEventListener('timeupdate',()=>{if(S.m!='au')return;S.pos=au.currentTime;if(isFinite(au.duration))S.dur=au.duration;tick()});
+au.addEventListener('ended',()=>{if(S.m=='au')step(1)});
+['play','pause'].forEach(e=>au.addEventListener(e,()=>{if(!S.ready||S.m!='au')return;S.play=!au.paused;chrome();heroBtn()}));
+if('mediaSession' in navigator){const m=(a,f)=>{try{navigator.mediaSession.setActionHandler(a,f)}catch{}};m('play',()=>P.play());m('pause',()=>P.pause());m('previoustrack',()=>step(-1));m('nexttrack',()=>step(1));m('seekto',e=>P.seek(e.seekTime))}
 // Search
 let tk=0,tm;
 async function run(){const q=S.q.trim(),n=++tk;if(!q){S.st='idle';return res()}S.st='load';res();
@@ -85,7 +98,7 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b
  else if(a=='q'){S.open=!S.open;chrome()}else if(a=='sheet'){S.sheet=!S.sheet;chrome()}
  else if(a=='all'){S.all=!S.all;res()}else if(a=='retry')run();else if(a=='rs')loadSec(b.dataset.id,b.closest('[data-sec]').dataset.q);
  else if(a=='f'){S.f[b.dataset.k]=!S.f[b.dataset.k];b.setAttribute('aria-pressed',!!S.f[b.dataset.k]);res()}
- else if(a=='seek'&&S.ready){const r=b.getBoundingClientRect();au.currentTime=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width))*(S.dur||0)}});
+ else if(a=='seek'&&S.ready){const r=b.getBoundingClientRect();P.seek(Math.max(0,Math.min(1,(e.clientX-r.left)/r.width))*(S.dur||0))}});
 document.addEventListener('input',e=>{if(e.target.id=='q'){S.q=e.target.value;clearTimeout(tm);tm=setTimeout(run,350)}});
-document.addEventListener('keydown',e=>{if(e.target.matches&&e.target.matches('.bar')&&S.ready&&(e.key=='ArrowRight'||e.key=='ArrowLeft'))au.currentTime=Math.max(0,au.currentTime+(e.key=='ArrowRight'?5:-5))});
+document.addEventListener('keydown',e=>{if(e.target.matches&&e.target.matches('.bar')&&S.ready&&(e.key=='ArrowRight'||e.key=='ArrowLeft'))P.seek(Math.max(0,P.time()+(e.key=='ArrowRight'?5:-5)))});
 addEventListener('hashchange',nav);nav();

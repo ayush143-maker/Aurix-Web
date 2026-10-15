@@ -12,7 +12,8 @@ async function call(path,ms,skip=[]){
   try{return await Promise.any(b.map(async(u,i)=>{try{const d=await probe(u,path,ms,cs[i]);d.__b=u;cs.forEach((c,j)=>j!=i&&c.abort());sv('aurix.best',u);return d}
    catch(e){diag.push(new URL(u).host+': '+(e.name=='AbortError'?'timeout':e.message));throw e}}))}catch{}}
  throw new Error('All servers failed')}
-const map=j=>(Array.isArray(j)?j:j.items||[]).filter(i=>i&&typeof i.url=='string'&&i.url.includes('v=')&&(!i.type||i.type=='stream')).map(i=>({id:new URL(i.url,'https://x.y').searchParams.get('v'),title:i.title,artist:i.uploaderName||'',art:i.thumbnail,d:i.duration>0?i.duration:0}));
+export const big=u=>u&&/googleusercontent|ggpht/.test(u)?u.replace(/=w\d+-h\d+/,'=w544-h544').replace(/=s\d+(-c)?(?=$|[-?&])/,'=s544-c'):u;
+const map=j=>(Array.isArray(j)?j:j.items||[]).filter(i=>i&&typeof i.url=='string'&&i.url.includes('v=')&&(!i.type||i.type=='stream')).map(i=>({id:new URL(i.url,'https://x.y').searchParams.get('v'),title:i.title,artist:i.uploaderName||'',art:big(i.thumbnail),d:i.duration>0?i.duration:0}));
 export async function search(q){const e=encodeURIComponent(q);let r=[];
  try{r=map(await call('/search?q='+e+'&filter=music_songs',4000))}catch{}
  if(!r.length)r=map(await call('/search?q='+e+'&filter=videos',4000)).filter(t=>t.d>=45);
