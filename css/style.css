@@ -63,3 +63,13 @@ button,input{font:inherit;color:inherit;background:none;border:0;padding:0;curso
 @media(min-width:1280px){.app{grid-template-columns:var(--rail) minmax(0,1fr) 0}.app.queue-open{grid-template-columns:var(--rail) minmax(0,1fr) var(--queue)}
 .queue{position:static;grid-column:3;grid-row:1;transform:none;transition:none;overflow:hidden}}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
+.art img{display:block;width:100%;height:100%;object-fit:cover}
+.tabbar svg{width:24px;height:24px}
+.mo{display:flex;align-items:center;gap:12px;flex:1;min-width:0;height:100%}
+.ib:disabled{opacity:.35;cursor:default}.ib:disabled:hover{background:none}.pp:disabled:hover{background:var(--paper)}
+.sc{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;color:var(--stone);font-size:.75rem;font-variant-numeric:tabular-nums}
+.tp{display:flex;justify-content:center;gap:8px}
+.sheet{position:fixed;inset:0;z-index:30;background:var(--ink);overflow-y:auto;transform:translateY(100%);visibility:hidden;transition:transform .24s,visibility 0s .24s}
+.sheet-open .sheet{transform:none;visibility:visible;transition:transform .24s}
+.sh{display:grid;gap:20px;padding:calc(8px + env(safe-area-inset-top)) 16px 32px}.sh .art{width:100%}.sh h2{font:300 2.5rem/1 var(--serif);letter-spacing:-.02em}.sh .tp{justify-content:space-between}.sh .ib{margin-left:-12px}
+@media(min-width:960px){.sheet{display:none}}
