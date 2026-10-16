@@ -21,3 +21,6 @@ export async function search(q){const e=encodeURIComponent(q);let r=[];
 export async function streams(id,skip=[]){const j=await call('/streams/'+id,7000,skip),
  a=(j.audioStreams||[]).filter(s=>s&&typeof s.url=='string'&&s.url.startsWith('https:')).sort((x,y)=>((y.mimeType||'').includes('mp4')-(x.mimeType||'').includes('mp4'))||((y.bitrate||0)-(x.bitrate||0)));
  if(!a.length)throw new Error('No audio stream');return{base:j.__b,d:j.duration,urls:a.slice(0,3).map(s=>s.url)}}
+export async function searchArtists(q){
+ const j=await call('/search?q='+encodeURIComponent(q)+'&filter=music_artists',4000);
+ return(Array.isArray(j)?j:j.items||[]).filter(i=>i&&typeof i.url=='string'&&i.url.includes('/channel/')).slice(0,8).map(i=>({name:i.name||i.title||'',art:big(i.thumbnail)})).filter(a=>a.name)}
